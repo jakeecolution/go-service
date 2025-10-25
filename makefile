@@ -9,7 +9,7 @@ run:
 # Define dependencies
 
 GOLANG          := golang:1.25
-ALPINE          := alpine:3.19
+ALPINE          := alpine:3
 KIND            := kindest/node:v1.34.0
 POSTGRES        := postgres:16.2
 GRAFANA         := grafana/grafana:10.4.0
@@ -27,6 +27,26 @@ VERSION         := 0.0.1
 SALES_IMAGE     := $(BASE_IMAGE_NAME)/$(SALES_APP):$(VERSION)
 METRICS_IMAGE   := $(BASE_IMAGE_NAME)/metrics:$(VERSION)
 AUTH_IMAGE      := $(BASE_IMAGE_NAME)/$(AUTH_APP):$(VERSION)
+# ==============================================================================
+# Building containers
+
+build: sales
+
+sales:
+	docker build \
+		-f zarf/docker/dockerfile.sales \
+		-t $(SALES_IMAGE) \
+		--build-arg BUILD_REF=$(VERSION) \
+		--build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+		.
+
+auth:
+	docker build \
+		-f zarf/docker/dockerfile.auth \
+		-t $(AUTH_IMAGE) \
+		--build-arg BUILD_REF=$(VERSION) \
+		--build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+		.
 
 # ==============================================================================
 # Running from within k8s/kind
@@ -52,6 +72,9 @@ dev-status-all:
 dev-status:
 	watch -n 2 kubectl get pods -o wide --all-namespaces
 
+
+genkeys:
+	cd zarf/keys && ./genkeys.sh
 
 tidy:
 	go mod tidy

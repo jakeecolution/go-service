@@ -36,3 +36,6 @@ nodes:
   # Tempo (tracing)
   - containerPort: 9411
     hostPort: 9411
+- role: worker
+- role: worker
+- role: worker
