@@ -27,6 +27,40 @@ VERSION         := 0.0.1
 SALES_IMAGE     := $(BASE_IMAGE_NAME)/$(SALES_APP):$(VERSION)
 METRICS_IMAGE   := $(BASE_IMAGE_NAME)/metrics:$(VERSION)
 AUTH_IMAGE      := $(BASE_IMAGE_NAME)/$(AUTH_APP):$(VERSION)
+
+# Install Dependencies
+
+dev-gotooling:
+	go install github.com/divan/expvarmon@latest
+	go install github.com/rakyll/hey@latest
+	go install honnef.co/go/tools/cmd/staticcheck@latest
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	go install golang.org/x/tools/cmd/goimports@latest
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+dev-brew:
+	brew update
+	brew list kind || brew install kind
+	brew list kubectl || brew install kubectl
+	brew list kustomize || brew install kustomize
+	brew list pgcli || brew install pgcli
+	brew list watch || brew install watch
+	brew list protobuf || brew install protobuf
+	brew list grpcurl || brew install grpcurl
+
+dev-docker:
+	docker pull docker.io/$(GOLANG) & \
+	docker pull docker.io/$(ALPINE) & \
+	docker pull docker.io/$(KIND) & \
+	docker pull docker.io/$(POSTGRES) & \
+	docker pull docker.io/$(GRAFANA) & \
+	docker pull docker.io/$(PROMETHEUS) & \
+	docker pull docker.io/$(TEMPO) & \
+	docker pull docker.io/$(LOKI) & \
+	docker pull docker.io/$(PROMTAIL) & \
+	wait;
+
 # ==============================================================================
 # Building containers
 
@@ -72,6 +106,55 @@ dev-status-all:
 dev-status:
 	watch -n 2 kubectl get pods -o wide --all-namespaces
 
+dev-status-sales:
+	kubectl get pods -o wide --namespace sales-system
+
+# ------------------------------------------------------------------------------
+
+dev-load-db:
+	kind load docker-image $(POSTGRES) --name $(KIND_CLUSTER)
+
+dev-load:
+	kind load docker-image $(SALES_IMAGE) --name $(KIND_CLUSTER)
+# 	kind load docker-image $(AUTH_IMAGE) --name $(KIND_CLUSTER)
+
+dev-apply:
+# 	kustomize build zarf/k8s/dev/database | kubectl apply -f -
+# 	kubectl rollout status --namespace=$(NAMESPACE) --watch --timeout=120s sts/database
+
+# 	kustomize build zarf/k8s/dev/auth | kubectl apply -f -
+# 	kubectl wait pods --namespace=$(NAMESPACE) --selector app=$(AUTH_APP) --timeout=120s --for=condition=Ready
+
+	kustomize build zarf/k8s/dev/sales | kubectl apply -f -
+	kubectl wait pods --namespace=$(NAMESPACE) --selector app=$(SALES_APP) --timeout=120s --for=condition=Ready
+
+dev-restart:
+# 	kubectl rollout restart deployment $(AUTH_APP) --namespace=$(NAMESPACE)
+	kubectl rollout restart deployment $(SALES_APP) --namespace=$(NAMESPACE)
+
+dev-update: build dev-load dev-restart
+
+dev-update-apply: build dev-load dev-apply
+
+dev-logs:
+	kubectl logs --namespace=$(NAMESPACE) -l app=$(SALES_APP) --all-containers=true -f --tail=100 --max-log-requests=6 | go run apis/tooling/logfmt/main.go -service=$(SALES_APP)
+
+# dev-logs-auth:
+# 	kubectl logs --namespace=$(NAMESPACE) -l app=$(AUTH_APP) --all-containers=true -f --tail=100 | go run apis/tooling/logfmt/main.go
+
+dev-logs-init:
+	kubectl logs --namespace=$(NAMESPACE) -l app=$(SALES_APP) -f --tail=100 -c init-migrate-seed
+
+dev-describe-deployment:
+	kubectl describe deployment --namespace=$(NAMESPACE) $(SALES_APP)
+
+dev-describe-sales:
+	kubectl describe pod --namespace=$(NAMESPACE) -l app=$(SALES_APP)
+
+# dev-describe-auth:
+# 	kubectl describe pod --namespace=$(NAMESPACE) -l app=$(AUTH_APP)
+
+# ------------------------------------------------------------------------------
 
 genkeys:
 	cd zarf/keys && ./genkeys.sh

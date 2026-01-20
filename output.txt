@@ -1,0 +1,48 @@
+kubectl describe pod --namespace=sales-system -l app=sales
+Name:             sales-7467d4b9fc-vvz24
+Namespace:        sales-system
+Priority:         0
+Service Account:  default
+Node:             ardan-starter-cluster-worker2/10.89.1.7
+Start Time:       Mon, 19 Jan 2026 21:36:12 -0500
+Labels:           app=sales
+                  pod-template-hash=7467d4b9fc
+Annotations:      <none>
+Status:           Running
+IP:               10.89.1.7
+IPs:
+  IP:           10.89.1.7
+Controlled By:  ReplicaSet/sales-7467d4b9fc
+Containers:
+  sales:
+    Container ID:   containerd://cbb529549c7d2a47085871862eee606ffd624f822ddfb9ee4520721292e29e5d
+    Image:          localhost/ardanlabs/sales:0.0.1
+    Image ID:       sha256:67446482e6d43de0cdec24ada73d53373d2ebf7bd5fc5582af45e566f7249fb7
+    Port:           <none>
+    Host Port:      <none>
+    State:          Running
+      Started:      Mon, 19 Jan 2026 21:36:12 -0500
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-lprqp (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       True 
+  ContainersReady             True 
+  PodScheduled                True 
+Volumes:
+  kube-api-access-lprqp:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:                      <none>
